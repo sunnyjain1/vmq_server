@@ -584,7 +584,37 @@ direct_plugin_exports(Mod) when is_atom(Mod) ->
             {error, invalid_config}
     end.
 
-
+-spec dpe(module()) -> {function()} | {error}.
+dpe(Mod) when is_atom(Mod) ->
+    %% This Function exports a generic Register, Publish, and Subscribe
+    %% Fun, that a plugin can use if needed. Currently all functions
+    %% block until the cluster is ready.
+    case {vmq_config:get_env(trade_consistency, false),
+          vmq_config:get_env(default_reg_view, vmq_reg_trie)} of
+        {TradeConsistency, DefaultRegView}
+              when is_boolean(TradeConsistency)
+                   and is_atom(DefaultRegView) ->
+            MountPoint = "",
+			PublishFun1 =
+            fun([W|_] = Topic, Payloadi,Qos,Retain) when is_binary(W) and is_binary(Payload) ->
+                    wait_til_ready(),
+                    Msg = #vmq_msg{routing_key=Topic,
+                                   mountpoint=MountPoint,
+                                   payload=Payload,
+								   qos=Qos,
+                                   msg_ref=vmq_mqtt_fsm:msg_ref(),
+                                   dup=false,
+                                   retain=Retain,
+                                   trade_consistency=TradeConsistency,
+                                   reg_view=DefaultRegView
+                                  },
+                    publish(Msg)
+            end,
+			{PublishFun1};
+	_ ->
+		{error}
+ end.
+		
 plugin_queue_loop(PluginPid, PluginMod) ->
     receive
         {vmq_mqtt_fsm, {mail, QPid, new_data}} ->
