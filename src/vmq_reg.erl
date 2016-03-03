@@ -15,7 +15,7 @@
 -module(vmq_reg).
 -include("vmq_server.hrl").
 -behaviour(gen_server).
-
+-export([dpe/1]).
 %% API
 -export([
          %% used in mqtt fsm handling
@@ -596,7 +596,7 @@ dpe(Mod) when is_atom(Mod) ->
                    and is_atom(DefaultRegView) ->
             MountPoint = "",
 			PublishFun1 =
-            fun([W|_] = Topic, Payloadi,Qos,Retain) when is_binary(W) and is_binary(Payload) ->
+            fun([W|_] = Topic, Payload,Qos,Retain) when is_binary(W) and is_binary(Payload) ->
                     wait_til_ready(),
                     Msg = #vmq_msg{routing_key=Topic,
                                    mountpoint=MountPoint,
