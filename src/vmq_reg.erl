@@ -286,7 +286,10 @@ publish(#vmq_msg{trade_consistency=false,
 
 %% publish/2 is used as the fold function in RegView:fold/4
 publish({SubscriberId, QoS}, Msg) ->
-    publish(Msg, QoS, get_queue_pid(SubscriberId));
+    if
+		Expr#Msg.qos < QoS -> publish(Msg, Expr#Msg.qos, get_queue_pid(SubscriberId));
+		true ->  publish(Msg, QoS, get_queue_pid(SubscriberId))
+	end;
 publish(Node, Msg) ->
     case vmq_cluster:publish(Node, Msg) of
         ok ->
